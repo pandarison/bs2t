@@ -11,6 +11,11 @@
 import cookielib, urllib2, urllib
 import json, time
 import os, re, threading
+import requests
+import BeautifulSoup
+import sys
+reload(sys)
+sys.setdefaultencoding("utf-8")
 
 debug = False
 
@@ -138,7 +143,7 @@ def requestSpeed(ipList, thLimit, rank):
                   break
 
 ip = raw_input('请输入域名(不含http://): ')
-d = raw_input('是否开启调试(Y/Other): ')
+d = 'Y'
 c = raw_input('请输入Ping并发数: ')
 c = int(c)
 if d == 'Y' or d == 'y': debug = True
@@ -158,8 +163,16 @@ rank = sorted(rank.items(), cmp=lambda x,y: cmp(float(x[1][0][1]), float(y[1][0]
 print '==================================='
 print '可连接的服务器地址(按速度排序):'
 
+ipcn = 'http://ip.cn/index.php?ip='
 for x in rank:
-      print "%s    %s ms" %(x[0], x[1][0][1])
+      r = requests.get(ipcn + x[0])
+      r.encoding = 'utf-8'
+      r = r.text
+      html = BeautifulSoup.BeautifulSoup(r)
+      ptext = html.findAll('div', attrs={'class':'well'})[0].p.text
+      ptext = str(ptext).split('：')[2]
+      print "%s \t %s ms \t %s" %(x[0], x[1][0][1], ptext)
+
 print '==================================='
 cmd = 'ping -c 4 -q [ip]'.replace('[ip]', ip)
 rst = os.popen(cmd).read()
@@ -168,5 +181,6 @@ if rst.find(rank[0][0]) >= 0:
 else:
       print "建议的服务器IP如下，请将下面一行添加到hosts文件中，或者路由器的DNS重定向中."
       print "%s %s" %(rank[0][0], ip)
+      print "address=/%s/%s"%(ip, rank[0][0])
 print '==================================='
 
